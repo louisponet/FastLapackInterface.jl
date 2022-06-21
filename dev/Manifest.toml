@@ -14,8 +14,8 @@ version = "0.5.2+0"
 
 [[deps.FastLapackInterface]]
 deps = ["LinearAlgebra"]
-git-tree-sha1 = "445be8513e5d453d0481fe05ac7b612dc08d61db"
-repo-rev = "d266d5b5fcdef010d82aec0cfd674ab4fde465b4"
+git-tree-sha1 = "1a7b46cd6e56c984734e9f43c1df3b35a94f18d0"
+repo-rev = "473bd34b0246de44162f57cfbbb5e51802671ee2"
 repo-url = "https://github.com/louisponet/FastLapackInterface.jl.git"
 uuid = "29a986be-02c6-4525-aec4-84b980013641"
 version = "0.1.3"
