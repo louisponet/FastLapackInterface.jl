@@ -358,7 +358,7 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_,  :Float64),
                       
     @eval function ormqr!(ws::Union{QRWs{$elty}, QRPivotedWs{$elty}}, side::AbstractChar, trans::AbstractChar,
                           A::AbstractMatrix{$elty},
-                          C::AbstractVecOrMat{$elty})
+                          C::AbstractVecOrMat{$elty}; resize=true)
         require_one_based_indexing(A, C)
         chktrans(trans)
         chkside(side)
@@ -366,18 +366,38 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_,  :Float64),
         m, n = ndims(C) == 2 ? size(C) : (size(C, 1), 1)
         mA   = size(A, 1)
         k    = length(ws.τ)
-        if side == 'L' && m != mA
-            throw(DimensionMismatch("for a left-sided multiplication, the first dimension of C, $m, must equal the second dimension of A, $mA"))
+        lwork = length(ws.work)
+        if side == 'L'
+            if m != mA
+                throw(DimensionMismatch("for a left-sided multiplication, the first dimension of C, $m, must equal the second dimension of A, $mA"))
+            end
+            if k > m
+                throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= m = $m"))
+            end
+            if lwork < max(1, n)
+                if !resize
+                    throw(DimensionMismatch("allocated work buffer is smaller than $n"))
+                end
+                resize!(ws.work, n)
+                lwork = n
+            end
         end
-        if side == 'R' && n != mA
-            throw(DimensionMismatch("for a right-sided multiplication, the second dimension of C, $m, must equal the second dimension of A, $mA"))
+        if side == 'R'
+            if n != mA
+                throw(DimensionMismatch("for a right-sided multiplication, the second dimension of C, $m, must equal the second dimension of A, $mA"))
+            end
+            if k > n
+                throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $n"))
+            end
+            if lwork < max(1, m)
+                if !resize
+                    throw(DimensionMismatch("allocated work buffer is smaller than $m"))
+                end
+                resize!(ws.work, m)
+                lwork = m
+            end
         end
-        if side == 'L' && k > m
-            throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= m = $m"))
-        end
-        if side == 'R' && k > n
-            throw(DimensionMismatch("invalid number of reflectors: k = $k should be <= n = $n"))
-        end
+        
         info = Ref{BlasInt}()
         ccall((@blasfunc($ormqr), liblapack), Cvoid,
               (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt},
@@ -386,7 +406,7 @@ for (ormqr, orgqr, elty) in ((:dormqr_, :dorgqr_,  :Float64),
                Ref{BlasInt}, Clong, Clong),
               side, trans, m, n,
               k, A, max(1, stride(A, 2)), ws.τ,
-              C, max(1, stride(C, 2)), ws.work, length(ws.work),
+              C, max(1, stride(C, 2)), ws.work, lwork,
               info, 1, 1)
         chklapackerror(info[])
         return C

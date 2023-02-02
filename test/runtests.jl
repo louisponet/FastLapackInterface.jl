@@ -1,6 +1,7 @@
 using FastLapackInterface
 using LinearAlgebra
 using Test
+using MKL
 
 include("lse_test.jl")
 include("lu_test.jl")

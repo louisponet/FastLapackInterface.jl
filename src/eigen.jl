@@ -139,6 +139,7 @@ for (geevx, elty, relty) in
                         jobvr::AbstractChar, sense::AbstractChar, A::AbstractMatrix{$elty}; resize=true)
             n = checksquare(A)
             chkfinite(A) # balancing routines don't support NaNs and Infs
+            lwork = length(ws.work)
             if balanc ∉ ('N', 'P', 'S', 'B')
                 throw(ArgumentError("balanc must be 'N', 'P', 'S', or 'B', but $balanc was passed"))
             end
@@ -156,6 +157,7 @@ for (geevx, elty, relty) in
                         throw(ArgumentError("Workspace was created without support for sense,\n use resize!(ws, A, sense=true)."))
                     end
                 end
+                        
             end
             
             if jobvl == 'V' && size(ws.VL, 1) == 0
@@ -181,6 +183,19 @@ for (geevx, elty, relty) in
                     resize!(ws, A, rvecs = ldvr != 0, lvecs = ldvl != 0, sense=size(ws.iwork, 1) != 0)
                 else
                     throw(WorkspaceSizeError(nws, n))
+                end
+            end
+            if sense in ('N', 'E') && lwork < 3n
+                if resize
+                    resize!(ws.work, 3n)
+                else
+                    throw(WorkspaceSizeError(lwork, 3n))
+                end
+            elseif sense in ('V', 'B') && lwork < n * (n+6)
+                if resize
+                    resize!(ws.work, n * (n + 6))
+                else
+                    throw(WorkspaceSizeError(lwork, n*(n+6)))
                 end
             end
             
